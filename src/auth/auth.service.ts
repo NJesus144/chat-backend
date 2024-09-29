@@ -1,24 +1,19 @@
 import { Injectable } from '@nestjs/common'
 // import { User, UsersService } from '../users/users.service'
-import { RegisterUserDto } from '../users/dto/register.user.dto'
+import { RegisterUserDto } from '../users/dto/register-user.dto'
 import { InjectModel } from '@nestjs/mongoose'
 import { User, UserDocument } from '../schemas/user.schema'
 import { Model } from 'mongoose'
 import * as bcrypt from 'bcrypt'
+import { LoginUserDto } from '../users/dto/login-user.dto'
+import { JwtService } from '@nestjs/jwt'
 
 @Injectable()
 export class AuthService {
-  constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
-
-  // async validateUser(username: string, pass: string): Promise<any> {
-  //   const user = await this.usersService.findOne(username)
-  //   if (user && user.password === pass) {
-  //     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  //     const { password, ...result } = user
-  //     return result
-  //   }
-  //   return null
-  // }
+  constructor(
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
+    private jwtService: JwtService,
+  ) {}
 
   async register(registerUserDto: RegisterUserDto): Promise<User> {
     const { username, password } = registerUserDto
@@ -31,8 +26,30 @@ export class AuthService {
     const salt = await bcrypt.genSalt()
     const hashedPassword = await bcrypt.hash(password, salt)
 
-    // Create a new user
     const newUser = new this.userModel({ username, password: hashedPassword })
     return newUser.save()
+  }
+
+  async validateUser(username: string, password: string): Promise<User | null> {
+    const user = await this.userModel.findOne({ username }).exec()
+    if (!user) return null
+
+    const isPasswordValid = await bcrypt.compare(password, user.password)
+    if (!isPasswordValid) return null
+
+    return user
+  }
+
+  async login(lodingUserDto: LoginUserDto): Promise<{ access_token: string }> {
+    const { username, password } = lodingUserDto
+    const user = await this.validateUser(username, password)
+    if (!user) {
+      throw new Error('Invalid credentials')
+    }
+
+    const payload = { username: user.username, sub: user.id }
+    return {
+      access_token: this.jwtService.sign(payload),
+    }
   }
 }
