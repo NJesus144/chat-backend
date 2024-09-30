@@ -1,9 +1,10 @@
 /* eslint-disable prettier/prettier */
-import { Body, Controller, Post } from '@nestjs/common'
+import { Body, Controller, Get, Post, Request, UseGuards } from '@nestjs/common'
 import { AuthService } from './auth.service'
 import { RegisterUserDto } from '../users/dto/register-user.dto'
 import { User } from '../schemas/user.schema'
 import { LoginUserDto } from '../users/dto/login-user.dto'
+import { JwtAuthGuard } from './jwt/jwt-auth.guard'
 
 @Controller('auth')
 export class AuthController {
@@ -15,7 +16,15 @@ export class AuthController {
   }
 
   @Post('login')
-  async login(@Body() loginUseDto: LoginUserDto): Promise<{ access_token: string }> {
+  async login(
+    @Body() loginUseDto: LoginUserDto,
+  ): Promise<{ access_token: string }> {
     return this.authService.login(loginUseDto)
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('profile')
+  async getProfile(@Request() req): Promise<{ username: string }> {
+    return this.authService.getUserProfile(req.user.id)
   }
 }

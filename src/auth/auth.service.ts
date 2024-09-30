@@ -7,6 +7,7 @@ import { Model } from 'mongoose'
 import * as bcrypt from 'bcrypt'
 import { LoginUserDto } from '../users/dto/login-user.dto'
 import { JwtService } from '@nestjs/jwt'
+import { UserProfileDto } from '../users/dto/user-profile.dto'
 
 @Injectable()
 export class AuthService {
@@ -51,5 +52,13 @@ export class AuthService {
     return {
       access_token: this.jwtService.sign(payload),
     }
+  }
+
+  async getUserProfile(userId: string): Promise<UserProfileDto> {
+    const user = await this.userModel.findById(userId).exec()
+    if (!user) {
+      throw new Error('User not found')
+    }
+    return { username: user.username }
   }
 }
