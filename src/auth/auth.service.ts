@@ -48,14 +48,17 @@ export class AuthService {
       throw new Error('Invalid credentials')
     }
 
-    const payload = { username: user.username, sub: user.id }
+    const payload = { username: user.username, sub: user._id }
     return {
       access_token: this.jwtService.sign(payload),
     }
   }
 
   async getUserProfile(userId: string): Promise<UserProfileDto> {
+    console.log('userId usuario', userId)
     const user = await this.userModel.findById(userId).exec()
+
+    console.log('usuario encontrado ===>', user)
     if (!user) {
       throw new Error('User not found')
     }
