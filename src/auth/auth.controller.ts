@@ -16,15 +16,14 @@ export class AuthController {
   }
 
   @Post('login')
-  async login(
-    @Body() loginUseDto: LoginUserDto,
-  ): Promise<{ access_token: string }> {
+  async login(@Body() loginUseDto: LoginUserDto): Promise<{ access_token: string }> {
     return this.authService.login(loginUseDto)
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   async getProfile(@Request() req): Promise<{ username: string }> {
-    return this.authService.getUserProfile(req.user.id)
+    console.log(req.user)
+    return this.authService.getUserProfile(req.user.userId)
   }
 }
