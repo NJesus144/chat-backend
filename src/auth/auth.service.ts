@@ -1,5 +1,4 @@
-import { Injectable } from '@nestjs/common'
-// import { User, UsersService } from '../users/users.service'
+import { Injectable, UnauthorizedException } from '@nestjs/common'
 import { RegisterUserDto } from '../users/dto/register-user.dto'
 import { InjectModel } from '@nestjs/mongoose'
 import { User, UserDocument } from '../schemas/user.schema'
@@ -8,31 +7,22 @@ import * as bcrypt from 'bcrypt'
 import { LoginUserDto } from '../users/dto/login-user.dto'
 import { JwtService } from '@nestjs/jwt'
 import { UserProfileDto } from '../users/dto/user-profile.dto'
+import { UsersService } from '../users/users.service'
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    private userService: UsersService,
     private jwtService: JwtService,
   ) {}
 
   async register(registerUserDto: RegisterUserDto): Promise<User> {
-    const { username, password } = registerUserDto
-
-    const exixtingUser = await this.userModel.findOne({ username }).exec()
-    if (exixtingUser) {
-      throw new Error('User already exists')
-    }
-
-    const salt = await bcrypt.genSalt()
-    const hashedPassword = await bcrypt.hash(password, salt)
-
-    const newUser = new this.userModel({ username, password: hashedPassword })
-    return newUser.save()
+    return this.userService.createUser(registerUserDto)
   }
 
   async validateUser(username: string, password: string): Promise<User | null> {
-    const user = await this.userModel.findOne({ username }).exec()
+    const user = await this.userService.findOne(username)
     if (!user) return null
 
     const isPasswordValid = await bcrypt.compare(password, user.password)
@@ -44,9 +34,7 @@ export class AuthService {
   async login(lodingUserDto: LoginUserDto): Promise<{ access_token: string }> {
     const { username, password } = lodingUserDto
     const user = await this.validateUser(username, password)
-    if (!user) {
-      throw new Error('Invalid credentials')
-    }
+    if (!user) throw new UnauthorizedException('Invalid credentials')
 
     const payload = { username: user.username, sub: user._id }
     return {
@@ -55,13 +43,6 @@ export class AuthService {
   }
 
   async getUserProfile(userId: string): Promise<UserProfileDto> {
-    console.log('userId usuario', userId)
-    const user = await this.userModel.findById(userId).exec()
-
-    console.log('usuario encontrado ===>', user)
-    if (!user) {
-      throw new Error('User not found')
-    }
-    return { username: user.username }
+    return this.userService.getUserProfile(userId)
   }
 }
