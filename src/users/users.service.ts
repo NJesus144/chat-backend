@@ -8,6 +8,7 @@ import { InjectModel } from '@nestjs/mongoose'
 import { Model } from 'mongoose'
 import { User, UserDocument } from '../schemas/user.schema'
 import * as bcrypt from 'bcrypt'
+import { UpdateUserDto } from './dto/update-user.dto'
 
 @Injectable()
 export class UsersService {
@@ -37,5 +38,22 @@ export class UsersService {
     if (!user) throw new NotFoundException('User not found')
 
     return user
+  }
+
+  async updateUser(
+    userId: string,
+    updateUserDto: UpdateUserDto,
+  ): Promise<User> {
+    const { username, password } = updateUserDto
+    const user = await this.userModel.findById(userId).exec()
+    if (!user) throw new NotFoundException('User not found')
+
+    if (username) user.username = username
+    if (password) {
+      const salt = await bcrypt.genSalt()
+      user.password = await bcrypt.hash(password, salt)
+    }
+
+    return user.save()
   }
 }

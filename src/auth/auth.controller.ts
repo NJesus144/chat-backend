@@ -1,17 +1,19 @@
 /* eslint-disable prettier/prettier */
-import { Body, Controller, Get, Post, Request, UseGuards } from '@nestjs/common'
+import { Body, Controller, Get, Post, Put, Request, UseGuards } from '@nestjs/common'
 import { AuthService } from './auth.service'
 import { RegisterUserDto } from '../users/dto/register-user.dto'
 import { User } from '../schemas/user.schema'
 import { LoginUserDto } from '../users/dto/login-user.dto'
 import { JwtAuthGuard } from './jwt/jwt-auth.guard'
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
+import { UpdateUserDto } from '../users/dto/update-user.dto'
+import { UsersService } from '../users/users.service'
 
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(private authService: AuthService, private userService: UsersService) {}
 
   @Post('register')
   @ApiOperation({ summary: 'Register a new user' })
@@ -58,5 +60,11 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Unauthorized.'})
   async getProfile(@Request() req): Promise<{ username: string }> {
     return this.authService.getUserProfile(req.user.userId)
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put('profile')
+  async updateUser(@Request() requestAnimationFrame, @Body() updateUserDto: UpdateUserDto): Promise<User> {
+    return this.userService.updateUser(requestAnimationFrame.user.userId, updateUserDto)
   }
 }
